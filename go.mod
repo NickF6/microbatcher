@@ -1,4 +1,4 @@
-module microbatcher
+module github.com/nickf6/microbatcher
 
 go 1.23.2
 
