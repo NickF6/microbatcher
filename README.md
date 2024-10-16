@@ -33,37 +33,46 @@ Here’s a detailed example demonstrating how to integrate MicroBatcher into a G
 package main
 
 import (
-    "fmt"
-    "time"
-    "github.com/nickf6/microbatcher"
+	"fmt"
+	"time"
+
+	"github.com/nickf6/microbatcher"
 )
 
 type MyBatchProcessor struct{}
 
-func (bp *MyBatchProcessor) Process(batch []microbatcher.Job) []microbatcher.JobResult {
-    results := make([]microbatcher.JobResult, len(batch))
-    for i, job := range batch {
-        fmt.Printf("Processing job: %v\n", job)
-        results[i] = fmt.Sprintf("Result for job: %v", job)
-    }
-    return results
+func (bp *MyBatchProcessor) Process(batch []microbatcher.Job) ([]microbatcher.JobResult, error) {
+	results := make([]microbatcher.JobResult, len(batch))
+	for i, job := range batch {
+		if i == len(batch)-1 {
+			fmt.Printf("Processing job: %v -- end of batch -- \n", job)
+		} else {
+			fmt.Printf("Processing job: %v\n", job)
+		}
+		results[i] = fmt.Sprintf("Result for job: %v", job)
+	}
+	return results, nil
 }
 
 func main() {
-    processor := &MyBatchProcessor{}
-    batcher := microbatcher.NewMicroBatcher(100, 5, 5*time.Second, processor)
+	processor := &MyBatchProcessor{}
+	batcher := microbatcher.NewMicroBatcher(3, 10*time.Millisecond, 3, 100*time.Millisecond, processor, 30)
 
-    // Submit some jobs
-    for i := 0; i < 20; i++ {
-        resultChan := batcher.Submit(fmt.Sprintf("Job-%d", i))
-        go func(resultChan chan microbatcher.JobResult) {
-            result := <-resultChan
-            fmt.Println(result)
-        }(resultChan)
-    }
+	// Submit some jobs
+	for i := 0; i < 20; i++ {
+		resultChan := batcher.Submit(fmt.Sprintf("Job-%d", i))
+		go func(resultChan chan microbatcher.JobResult) {
+			result := <-resultChan
+			fmt.Println(result)
+		}(resultChan)
+	}
 
-    // Shutdown the batcher gracefully
-    batcher.Shutdown()
+	// Allow jobs to complete
+	time.Sleep(300 * time.Millisecond)
+
+	// Shutdown the batcher gracefully
+	batcher.Shutdown()
 }
+
 
 ```
