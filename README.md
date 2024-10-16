@@ -6,6 +6,7 @@ MicroBatcher is a lightweight Go library designed to handle micro-batching of jo
 
 Batch jobs by size or at regular intervals.
 Supports configurable batch sizes and frequencies.
+Supports error handling including retry counts, and retry delay.
 Graceful shutdown ensuring all jobs are processed.
 Fully concurrent and safe for use in multi-threaded applications.
 
