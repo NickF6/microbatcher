@@ -22,7 +22,7 @@ To run tests, use the go test command:
 
 `go test`
 
-or for a verbose output
+or for a verbose output:
 
 `go test -v`
 
@@ -41,11 +41,11 @@ import (
 	"github.com/nickf6/microbatcher"
 )
 
-type MyBatchProcessor struct{}
-
 func failedToProcess() bool {
 	return rand.Intn(100) < 33
 }
+
+type MyBatchProcessor struct{}
 
 func (bp *MyBatchProcessor) Process(batch []microbatcher.Job) ([]microbatcher.JobResult, error) {
 	results := make([]microbatcher.JobResult, len(batch))
