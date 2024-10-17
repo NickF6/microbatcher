@@ -35,6 +35,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/nickf6/microbatcher"
@@ -42,38 +43,53 @@ import (
 
 type MyBatchProcessor struct{}
 
+func failedToProcess() bool {
+	return rand.Intn(100) < 33
+}
+
 func (bp *MyBatchProcessor) Process(batch []microbatcher.Job) ([]microbatcher.JobResult, error) {
 	results := make([]microbatcher.JobResult, len(batch))
+	if failedToProcess() {
+		return nil, fmt.Errorf("batch failed to process")
+	}
 	for i, job := range batch {
 		if i == len(batch)-1 {
 			fmt.Printf("Processing job: %v -- end of batch -- \n", job)
 		} else {
 			fmt.Printf("Processing job: %v\n", job)
 		}
+
 		results[i] = fmt.Sprintf("Result for job: %v", job)
 	}
 	return results, nil
+
 }
 
 func main() {
-	processor := &MyBatchProcessor{}
-	batcher := microbatcher.NewMicroBatcher(3, 10*time.Millisecond, 3, 100*time.Millisecond, processor, 30)
+	batchSize := 3
 
-	// Submit some jobs
+	processor := &MyBatchProcessor{}
+	batcher := microbatcher.NewMicroBatcher(batchSize, 10*time.Millisecond, 3, 100*time.Millisecond, processor, 30)
+
+	results := make([]chan microbatcher.JobResult, 20)
+
+	// Submit jobs
 	for i := 0; i < 20; i++ {
-		resultChan := batcher.Submit(fmt.Sprintf("Job-%d", i))
-		go func(resultChan chan microbatcher.JobResult) {
-			result := <-resultChan
-			fmt.Println(result)
-		}(resultChan)
+		results[i] = batcher.Submit(fmt.Sprintf("Job-%d", i))
 	}
 
-	// Allow jobs to complete
-	time.Sleep(300 * time.Millisecond)
-
-	// Shutdown the batcher gracefully
+	// Shutdown the batcher
 	batcher.Shutdown()
-}
 
+	// Print results and any batch that failed to process
+	for _, result := range results {
+		result := <-result
+		err, ok := result.(error)
+		if ok {
+			fmt.Println("Error occured:", err)
+		}
+		fmt.Println(result)
+	}
+}
 
 ```
